@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#2c2825">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("service-worker.js")})}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>独居单人餐合集 · 一人食快手食谱</title>
+<style>
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  background: #faf7f5; color: #1a1a1a; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+header {
+  background: linear-gradient(135deg, #2c2825 0%, #1a1816 100%);
+  color: #fff; padding: 48px 20px 56px; text-align: center; position: relative; overflow: hidden;
+}
+header::before {
+  content: ""; position: absolute; top: -60%; left: -20%; width: 140%; height: 140%;
+  background: radial-gradient(ellipse at 30% 50%, rgba(191,155,112,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.header-dec {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 2px; background: rgba(191,155,112,0.5);
+}
+.header-dec::before, .header-dec::after {
+  content: ""; position: absolute; top: -3px; width: 8px; height: 8px;
+  border-radius: 50%; background: #bf9b70;
+}
+.header-dec::before { left: -4px; }
+.header-dec::after { right: -4px; }
+header h1 { font-size: 32px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; position: relative; }
+header h1 span { color: #bf9b70; }
+header .sub { color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 400; letter-spacing: 1px; }
+header .stats {
+  display: flex; justify-content: center; gap: 24px; margin-top: 20px;
+  font-size: 13px; color: rgba(255,255,255,0.5);
+}
+header .stats span { display: flex; align-items: center; gap: 4px; }
+
+/* ── Container ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* ── Category Tabs ── */
+.tabs {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin: -20px auto 28px;
+  position: relative; z-index: 10;
+}
+.tab {
+  padding: 10px 22px; border-radius: 100px; border: none;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  background: #fff; color: #666;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: all 0.25s ease; letter-spacing: 0.5px;
+}
+.tab:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+.tab.active { background: #bf9b70; color: #fff; box-shadow: 0 4px 14px rgba(191,155,112,0.35); }
+
+/* ── Recipe Grid ── */
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px; padding-bottom: 60px;
+}
+.card {
+  background: #fff; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer; position: relative;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+
+.card-inner { padding: 20px 22px 18px; }
+
+.card-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;
+}
+.card-name { font-size: 17px; font-weight: 600; color: #1a1a1a; line-height: 1.4; }
+.card-time {
+  font-size: 12px; color: #bf9b70; white-space: nowrap;
+  background: rgba(191,155,112,0.1); padding: 3px 10px; border-radius: 20px;
+  font-weight: 500; margin-left: 10px; flex-shrink: 0;
+}
+
+.card-category {
+  font-size: 12px; color: #999; margin-bottom: 2px;
+}
+
+/* ── Expanded Content ── */
+.card-details {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card.open .card-details { max-height: 1200px; }
+
+.detail-section { padding: 0 22px 0; }
+.detail-label {
+  font-size: 13px; font-weight: 600; color: #bf9b70;
+  margin-bottom: 6px; margin-top: 14px; display: flex; align-items: center; gap: 6px;
+}
+.ing-list { list-style: none; }
+.ing-list li {
+  font-size: 13.5px; color: #444; padding: 2px 0;
+  position: relative; padding-left: 16px;
+}
+.ing-list li::before { content: "•"; position: absolute; left: 0; color: #bf9b70; }
+
+.step-list { list-style: none; counter-reset: step; }
+.step-list li {
+  counter-increment: step; font-size: 13.5px; color: #444;
+  padding: 3px 0 3px 28px; position: relative;
+}
+.step-list li::before {
+  content: counter(step); position: absolute; left: 0; top: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(191,155,112,0.12); color: #bf9b70;
+  font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tip-box {
+  margin: 14px 22px 18px; padding: 12px 14px;
+  background: #f9f6f1; border-radius: 10px;
+  font-size: 13px; color: #666; line-height: 1.5;
+}
+.tip-box strong { color: #bf9b70; font-weight: 600; }
+
+.expand-hint {
+  text-align: center; padding: 8px 0 14px;
+  font-size: 12px; color: #bbb;
+  transition: opacity 0.3s;
+}
+.card.open .expand-hint { opacity: 0; }
+
+/* ── No results ── */
+.no-results {
+  grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #999; font-size: 15px;
+}
+
+/* ── Footer ── */
+footer {
+  text-align: center; padding: 30px 20px;
+  font-size: 12px; color: #bbb; border-top: 1px solid #eee;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  header h1 { font-size: 24px; }
+  .grid { grid-template-columns: 1fr; gap: 14px; }
+  .tabs { gap: 6px; }
+  .tab { font-size: 13px; padding: 8px 16px; }
+  .card-inner { padding: 16px 18px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-dec"></div>
+  <h1>独居<span>单人餐</span>合集</h1>
+  <p class="sub">15 分钟搞定 · 一人食快手食谱</p>
+  <div class="stats">
+    <span>🍜 62 道菜谱</span>
+    <span>🕐 全部 15 分钟内</span>
+    <span>🛒 超市食材</span>
+  </div>
+
+<button id="ib" style="display:none;margin-top:14px;padding:8px 24px;border:1px solid rgba(191,155,112,0.5);border-radius:100px;background:transparent;color:#bf9b70;font-size:13px;cursor:pointer;font-family:inherit;" onclick="installApp()">📲 安装到桌面</button>
+<script>let dp;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;document.getElementById("ib").style.display="inline-block"});function installApp(){dp&&dp.prompt()}</script>
+</header>
+
+<div class="container">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-cat="all">✨ 全部</button>
+    <button class="tab" data-cat="cat1">🍝 面食</button>
+    <button class="tab" data-cat="cat2">🍚 盖饭</button>
+    <button class="tab" data-cat="cat3">🥢 小炒</button>
+    <button class="tab" data-cat="cat4">🍲 汤锅</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<footer>独居单人餐合集 · 虚拟资料仅供个人学习参考 · 禁止二次倒卖</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// Recipe Data
+// ═══════════════════════════════════════════════════════════════
+
+const CATEGORIES = {
+  cat1: "快速单人面食",
+  cat2: "简易米饭 / 盖饭套餐",
+  cat3: "家常单人小炒",
+  cat4: "清汤 / 简易汤锅小食"
+};
+
+const RECIPES = [];
+let recipeId = 0;
+
+function r(cat, name, time, ings, steps, tip) {
+  RECIPES.push({ id: ++recipeId, cat, name, time, ings, steps, tip });
+}
+
+// ── Cat1: 面食 (14) ──
+r("cat1","荷包蛋焖面","10分钟",["鲜面条1人份","鸡蛋1个","大蒜3瓣","小米辣1个(可选)","生抽、老抽、蚝油、白糖"],["锅中煎一个焦黄荷包蛋盛出","蒜末小米辣爆香，加生抽蚝油老抽白糖和一碗水煮开","放入面条和荷包蛋，盖盖中小火焖5-6分钟","开盖撒葱花拌匀"]);
+r("cat1","虾仁葱油拌面","10分钟",["鲜面条1人份","虾仁8-10个","小葱3根","生抽、老抽、白糖"],["虾仁腌2分钟，葱切段","小火炸葱段至焦黄出香，留葱油","虾仁煎至变红","煮好面条加生抽老抽白糖，淋热葱油拌匀，摆虾仁和炸葱"]);
+r("cat1","酸汤肥牛面","12分钟",["鲜面条1人份","肥牛卷100g","番茄1个","黄灯笼辣椒酱","白醋、盐、葱花"],["番茄切碎炒出红油","加水烧开，加黄灯笼椒酱和盐，下面条煮至八分熟","放肥牛卷烫至变色关火，淋白醋","撒葱花出锅"]);
+r("cat1","奶油蘑菇虾仁意面","12分钟",["意面1人份","虾仁8-10个","口蘑4-5朵","淡奶油100ml","蒜末、盐、黑胡椒、黄油"],["意面煮至弹牙留煮面水","虾仁煎变色盛出，黄油爆香蒜末和口蘑","倒淡奶油和煮面水搅匀煮开","放入意面和虾仁翻拌，大火收汁"]);
+r("cat1","油泼辣子面","10分钟",["宽面1人份","粗辣椒面2勺","蒜末、葱花","生抽2勺、陈醋1勺、盐"],["宽面煮熟过凉水装大碗","加蒜末葱花辣椒面和盐","生抽陈醋沿碗边淋入","油烧到冒烟泼在辣椒面上拌匀"]);
+r("cat1","番茄浓汤溏心蛋面","12分钟",["鲜面条1人份","番茄2个","鸡蛋1个","番茄酱1勺","蒜末、盐、糖、葱花"],["番茄去皮切碎炒出红油，加番茄酱","加水烧开下面条，加盐和糖","在汤面中心打入鸡蛋不搅动","盖盖小火焖2分钟至蛋白凝固，蛋黄流心"]);
+r("cat1","麻酱鸡丝凉拌面","10分钟",["鲜面条1人份","鸡胸肉1/4块","黄瓜丝、胡萝卜丝","芝麻酱2勺","生抽、醋、蒜水、辣椒油"],["鸡胸肉煮熟撕成细丝","面条过冰水沥干加香油","芝麻酱温水化开加调料调汁","面条摆鸡丝蔬菜丝淋麻酱汁"]);
+r("cat1","蒜香虾仁意面","10分钟",["意面1人份","虾仁10个","大蒜5瓣","干辣椒1-2个","橄榄油、盐、黑胡椒"],["意面煮至弹牙留煮面水","虾仁煎至金黄盛出","小火煎蒜片和干辣椒至金黄焦脆","倒入意面虾仁加煮面水翻炒调味"]);
+r("cat1","韩式辣酱拌面","8分钟",["鲜面条1人份","韩式辣酱1勺","韩式辣椒粉半勺","生抽、醋、糖、蒜末、香油","溏心蛋1个、黄瓜丝"],["面条煮熟过凉水","调酱：辣酱辣椒粉生抽醋糖蒜末香油","面条拌酱","摆溏心蛋和黄瓜丝撒白芝麻"]);
+r("cat1","海鲜炒乌冬面","10分钟",["乌冬面1包","虾仁6-8个","鱿鱼圈","洋葱丝、卷心菜丝","生抽、蚝油、黑胡椒、黄油"],["乌冬面烫1分钟沥干","黄油炒洋葱虾仁鱿鱼","加卷心菜和乌冬面","加生抽蚝油黑胡椒大火翻炒"]);
+r("cat1","冬阴功海鲜面","12分钟",["鲜面条1人份","虾仁6个","鱿鱼圈","冬阴功酱1.5勺","椰奶100ml、口蘑、小番茄"],["炒香冬阴功酱，加椰奶和水煮开","放口蘑和小番茄煮2分钟","下面条煮至八分熟加海鲜煮1分钟","挤青柠汁撒香菜"]);
+r("cat1","肉末豆角焖面","13分钟",["鲜面条1人份","肉末80g","豆角1小把","蒜末、姜末","生抽、老抽、蚝油"],["豆角切段，肉末腌制","炒散肉末加姜蒜豆角翻炒","加调料和一碗水烧开","铺面条盖盖中小火焖6-7分钟收汁"]);
+r("cat1","雪碧麻酱拌面","8分钟",["鲜面条1人份","芝麻酱2勺","雪碧3勺","生抽、陈醋、蒜末、辣椒油","黄瓜丝、花生碎"],["面条过凉水沥干","芝麻酱加雪碧澥开加调料调匀","面条淋酱拌匀","摆黄瓜丝撒花生碎"]);
+r("cat1","日式溏心蛋酱油拌面","8分钟",["鲜面条1人份","溏心蛋1个","日式酱油2勺","味醂1勺","葱花、白芝麻、海苔碎"],["面条过冰水沥干加香油","碗底加酱油味醂和煮面水","放入面条拌匀","摆溏心蛋撒葱花白芝麻海苔碎"]);
+
+// ── Cat2: 盖饭 (14) ──
+r("cat2","番茄肥牛盖饭","12分钟",["熟米饭1碗","肥牛卷120g","番茄1个","洋葱丝","生抽、蚝油、番茄酱"],["番茄切块，肥牛焯水","炒香洋葱加番茄炒出红油加番茄酱","加水烧开加调料放肥牛煮30秒","连汤汁浇米饭上撒葱花"]);
+r("cat2","滑蛋虾仁盖饭","10分钟",["熟米饭1碗","鸡蛋3个","虾仁10个","牛奶2勺","盐、白胡椒粉"],["蛋加牛奶打散，虾仁腌一下","虾仁煎变色混入蛋液","大火热油倒蛋液从外往内推","半凝固关火铺米饭上撒葱花"]);
+r("cat2","韩式泡菜五花肉炒饭","10分钟",["熟米饭1碗","五花肉80g","韩式泡菜1碗","韩式辣酱1勺","葱花、白芝麻"],["五花肉煎焦黄剪小块","加泡菜和辣酱翻炒","倒米饭大火炒匀","撒葱花白芝麻海苔碎"]);
+r("cat2","日式亲子丼","10分钟",["熟米饭1碗","鸡腿肉1块","鸡蛋2个","洋葱丝","酱油、味醂、高汤"],["鸡肉切块，酱汁入锅煮开","加洋葱和鸡肉煮5分钟","蛋液分两次淋入焖熟","连汤汁滑在米饭上"]);
+r("cat2","咖喱鸡肉饭","13分钟",["熟米饭1碗","鸡腿肉1块","土豆、胡萝卜、洋葱","咖喱块2小块"],["鸡肉土豆胡萝卜切小丁","炒香洋葱加鸡肉土豆胡萝卜","加水煮8分钟至软烂","关火放咖喱块搅化煮1分钟"]);
+r("cat2","照烧三文鱼饭","12分钟",["熟米饭1碗","三文鱼1块","生抽、蜂蜜、料酒","姜片、盐、白芝麻"],["三文鱼腌2分钟","带皮面朝下煎3分钟至皮脆","翻面煎2分钟倒照烧汁收浓","摆米饭上淋酱汁撒芝麻"]);
+r("cat2","日式牛丼","8分钟",["熟米饭1碗","肥牛卷120g","洋葱半个","日式酱油2勺","味醂、姜片"],["洋葱切丝，酱油味醂姜片煮开","加洋葱煮2分钟至软","放肥牛拨散煮至变色关火","连汤汁浇米饭上撒葱花白芝麻"]);
+r("cat2","韩式拌饭(快手版)","10分钟",["熟米饭1碗","肉末80g","菠菜、胡萝卜丝、豆芽","鸡蛋1个","韩式辣酱、香油"],["肉末炒散盛出","菠菜焯水，胡萝卜豆芽炒一下","煎太阳蛋","碗底铺米饭摆菜和煎蛋加辣酱拌匀"]);
+r("cat2","葱油鸡腿饭","10分钟",["熟米饭1碗","鸡腿肉1块","小葱3根","生抽、老抽、糖"],["鸡腿腌制后煎至两面金黄熟透切块","小葱炸焦出香","葱油加生抽老抽糖搅匀","米饭摆鸡腿淋葱油酱汁"]);
+r("cat2","黑椒牛肉粒盖饭","12分钟",["熟米饭1碗","牛里脊150g","青椒、洋葱","黑胡椒碎、黄油"],["牛肉切粒腌制","黄油大火炒牛肉粒变色盛出","炒软洋葱青椒倒回牛肉","加蚝油生抽大量黑胡椒翻炒"]);
+r("cat2","泡菜肥牛盖饭","8分钟",["熟米饭1碗","肥牛卷100g","韩式泡菜1碗","洋葱丝","生抽、糖、白芝麻"],["肥牛焯水","炒香洋葱加泡菜翻炒","加生抽糖放肥牛翻炒30秒","铺米饭撒白芝麻葱花"]);
+r("cat2","肉末茄子盖饭","12分钟",["熟米饭1碗","茄子1根","肉末80g","蒜末姜末","生抽老抽蚝油糖淀粉"],["茄条盐腌挤水","茄子煎软盛出","炒散肉末加姜蒜倒回茄子","加调料炒匀勾芡撒葱花"]);
+r("cat2","芝士烤饭团","12分钟",["熟米饭1碗","金枪鱼罐头半罐","芝士片1-2片","生抽、芝麻油、白芝麻","海苔片"],["米饭加金枪鱼生抽芝麻油拌匀","捏成饭团铺芝士片","空气炸锅180度烤6分钟","包海苔吃"]);
+r("cat2","板栗鸡腿焖饭","15分钟",["大米1杯","鸡腿肉1块","板栗6-8颗","生抽老抽蚝油料酒"],["鸡腿切块腌制煎金黄","加调料炒匀","米入电饭煲铺鸡肉板栗","煮好拌匀撒葱花"]);
+
+// ── Cat3: 小炒 (20) ──
+r("cat3","滑蛋虾仁","8分钟",["鸡蛋3个","虾仁12个","牛奶2勺","盐、白胡椒粉","食用油"],["虾仁煎变色放凉","蛋加牛奶打散混虾仁","大火热油多油倒蛋液","从外往内推，七成凝固关火出锅"]);
+r("cat3","孜然牛肉","10分钟",["牛里脊150g","孜然粒1勺","辣椒粉半勺","洋葱丝","生抽、料酒、淀粉"],["牛肉切片腌制","大火炒牛肉变色盛出","炒香洋葱蒜末孜然粒","倒回牛肉加辣椒粉快速翻炒"]);
+r("cat3","辣子鸡丁","12分钟",["鸡腿肉1块","干辣椒1把","花椒1小把","蒜末、姜片","生抽、料酒、淀粉"],["鸡腿切丁腌制","炸3分钟至金黄酥脆","小火炒香辣椒花椒姜蒜","倒鸡丁加糖生抽翻炒撒芝麻"]);
+r("cat3","黑椒牛柳","10分钟",["牛里脊150g","青椒半个","洋葱丝","黑胡椒碎","黄油、蚝油"],["牛肉切条腌制","黄油大火炒牛肉变色盛出","炒软洋葱青椒倒回牛肉","加蚝油生抽大量黑胡椒翻匀"]);
+r("cat3","泡菜炒五花肉","10分钟",["五花肉120g","韩式泡菜1碗","洋葱丝","韩式辣酱半勺","白糖、白芝麻"],["五花肉煎焦黄剪小块","加洋葱泡菜翻炒","加辣酱和糖炒匀","撒白芝麻出锅"]);
+r("cat3","蜜汁煎鸡翅","13分钟",["鸡翅6个","蜂蜜1勺","生抽蚝油料酒","蒜末姜片","白芝麻"],["鸡翅划刀腌制5分钟","两面各煎4分钟至金黄","倒剩余酱汁加水焖2分钟","开盖大火收汁撒芝麻"]);
+r("cat3","蒜蓉粉丝蒸虾","12分钟",["大虾8-10只","粉丝1小把","蒜末2大勺","生抽蚝油","葱花"],["粉丝泡软铺盘底，虾开背摆上","蒜末炒金黄加生抽蚝油铺虾上","水开后大火蒸5分钟","撒葱花淋热油"]);
+r("cat3","葱爆牛肉","8分钟",["牛里脊150g","大葱1根","生抽蚝油","料酒淀粉"],["牛肉切片腌制，大葱切斜段","大火炒牛肉变色盛出","补油炒大葱30秒倒回牛肉","加蚝油快速翻匀"]);
+r("cat3","干锅花菜","10分钟",["花菜半个","五花肉50g","干辣椒段","蒜片","生抽、蚝油"],["花菜焯1分钟，五花肉切小","五花肉煎出油加辣椒蒜片","倒花菜大火炒2分钟至焦黄","加调料出锅"]);
+r("cat3","糖醋里脊(快手版)","13分钟",["猪里脊150g","番茄酱2勺","白糖2勺","白醋1勺","料酒、淀粉"],["里脊切条腌制裹薄淀粉","炸3分钟至金黄","调糖醋汁煮开冒泡","倒里脊快速翻匀"]);
+r("cat3","麻婆豆腐","10分钟",["嫩豆腐1块","肉末80g","豆瓣酱1勺","花椒粉","水淀粉、葱花"],["豆腐切块焯水","炒散肉末加豆瓣酱炒出红油","加水烧开放豆腐煮3分钟","勾芡撒花椒粉葱花"]);
+r("cat3","蜜汁煎鸡胸肉","10分钟",["鸡胸肉1块","蜂蜜1勺","生抽蚝油","蒜末","盐、黑胡椒"],["鸡胸片成薄片拍松","酱汁腌制3分钟","每面煎2分钟至金黄","倒剩余酱汁小火再煎1分钟"]);
+r("cat3","回锅肉","12分钟",["五花肉150g","蒜苗2根","豆瓣酱1勺","豆豉","蒜片、姜片"],["五花肉煮8分钟切薄片","煎至微卷出油盛出","余油炒豆瓣酱豆豉姜蒜","倒肉和蒜苗大火翻炒"]);
+r("cat3","鱼香肉丝","12分钟",["猪里脊150g","木耳","胡萝卜丝","青椒丝","豆瓣酱、鱼香汁"],["肉切丝腌制，木耳切丝","调鱼香汁","滑熟肉丝，炒豆瓣酱加配菜","倒肉和青椒淋鱼香汁大火翻匀"]);
+r("cat3","宫保鸡丁","12分钟",["鸡腿肉1块","花生米","干辣椒","花椒","糖醋碗汁"],["鸡丁腌制，调碗汁","花生炒微黄","炒鸡丁盛出，炒香辣椒花椒","倒鸡丁花生淋碗汁快速翻匀"]);
+r("cat3","酸辣土豆丝","8分钟",["土豆1个","干辣椒段","蒜末","白醋2勺","盐"],["土豆切丝泡水","爆香辣椒蒜末","倒土豆丝大火快炒淋醋","加盐翻炒出锅"]);
+r("cat3","青椒肉丝","8分钟",["猪里脊150g","青椒2个","蒜末","生抽、料酒","淀粉"],["肉切丝腌制，青椒切丝","炒肉丝变色盛出","炒香蒜末加青椒翻炒","倒回肉丝加生抽盐炒匀"]);
+r("cat3","椒盐排骨","13分钟",["排骨200g","蒜末","青红椒碎","椒盐粉","料酒、淀粉"],["排骨腌制5分钟","炸5分钟至金黄","炒香蒜末青红椒","倒排骨撒椒盐粉翻匀"]);
+r("cat3","干煸四季豆","10分钟",["四季豆200g","肉末50g","干辣椒段","蒜末","花椒粉"],["四季豆去筋掰段吸干","炸到表面起皱微焦","炒散肉末加辣椒蒜末","倒四季豆加调料大火翻炒"]);
+r("cat3","虎皮青椒","8分钟",["青椒3-4个","蒜末","生抽2勺","醋1勺","白糖1勺"],["青椒拍扁","中小火煎出虎皮纹","蒜末爆香","淋糖醋汁大火收汁"]);
+
+// ── Cat4: 汤锅 (14) ──
+r("cat4","番茄肥牛汤","10分钟",["番茄2个","肥牛卷120g","蒜末","番茄酱","盐、白胡椒粉"],["番茄切碎炒出红汤","加番茄酱和水烧开煮3分钟","放肥牛烫至变色关火","加盐白胡椒粉撒葱花"]);
+r("cat4","韩式部队锅(一人食)","12分钟",["泡面1包","韩式辣酱1勺","泡菜半碗","年糕、午餐肉","芝士片"],["水加辣酱煮开","放泡菜午餐肉年糕煮3分钟","放泡面饼煮2分钟","放芝士焖30秒"]);
+r("cat4","牛奶麻辣烫","12分钟",["火锅底料","牛奶200ml","丸子、蔬菜、粉丝","芝麻酱","生抽、醋"],["炒香蒜末和火锅底料","加牛奶和水煮开","先放丸子后放蔬菜粉丝煮3分钟","碗底麻酱生抽醋倒麻辣烫拌匀"]);
+r("cat4","味噌豆腐汤","8分钟",["嫩豆腐半块","味噌1.5勺","海带芽","葱花"],["水烧开放豆腐煮3分钟","海带芽泡开放入关火","味噌在汤勺中化开","撒葱花滴香油"]);
+r("cat4","泡菜豆腐汤","10分钟",["嫩豆腐半块","韩式泡菜半碗","五花肉50g","韩式辣酱1勺"],["五花肉煎出油加蒜末泡菜炒","加水和辣酱煮开","豆腐切块煮4分钟","淋香油撒葱花"]);
+r("cat4","萝卜丝煎蛋汤","8分钟",["白萝卜一段","鸡蛋1个","葱花","盐、白胡椒粉"],["萝卜切细丝","煎荷包蛋两面焦后铲碎","加萝卜丝炒1分钟加开水煮3分钟","加盐白胡椒粉撒葱花滴香油"]);
+r("cat4","酸辣汤","10分钟",["嫩豆腐半块","鸡蛋1个","木耳","火腿肠","醋2勺、白胡椒粉1勺"],["豆腐木耳火腿肠切丝","加水煮开加生抽盐调味","勾芡淋蛋液","关火加醋和白胡椒粉"]);
+r("cat4","冬瓜虾滑汤","10分钟",["冬瓜200g","虾滑1包","姜片","盐、白胡椒粉"],["冬瓜切片","水加姜片冬瓜煮5分钟","虾滑挖球煮2分钟浮起","加盐白胡椒粉撒葱花"]);
+r("cat4","番茄菌菇汤","10分钟",["番茄1个","白玉菇1把","嫩豆腐半块","蒜末","盐、白胡椒粉"],["番茄切碎菌菇去根","炒香蒜末加番茄炒出红油","加水烧开放菌菇豆腐煮4分钟","加盐白胡椒粉撒葱花"]);
+r("cat4","虾滑紫菜汤","6分钟",["虾滑1包","紫菜","鸡蛋1个","盐、白胡椒粉"],["水烧开虾滑挖球煮至浮起","紫菜撕碎放入","淋蛋液搅成蛋花关火","加盐白胡椒粉滴香油"]);
+r("cat4","韩式辣白菜豆腐汤","10分钟",["嫩豆腐半块","辣白菜半碗","韩式辣酱1勺","洋葱丝","蒜末"],["炒香蒜末洋葱加辣白菜炒","加水辣酱煮开","豆腐切块煮5分钟","淋香油撒葱花"]);
+r("cat4","番茄金针菇豆腐汤","8分钟",["番茄1个","金针菇1把","嫩豆腐半块","盐、白胡椒粉"],["番茄切碎炒出汁","加水烧开","放金针菇豆腐煮3分钟","加盐白胡椒粉撒葱花"]);
+r("cat4","咖喱乌冬面","10分钟",["乌冬面1包","咖喱块1块","洋葱丝","胡萝卜片","鱼丸"],["炒香洋葱胡萝卜","加水煮开放咖喱块搅化","放鱼丸乌冬面煮2分钟","撒葱花"]);
+r("cat4","排骨冬瓜汤(电饭煲版)","5分钟备料",["排骨200g","冬瓜200g","姜片","盐、白胡椒粉"],["排骨焯水洗净","冬瓜切块","全部放入电饭煲加开水按煮汤键","煮好加盐白胡椒粉撒葱花"]);
+
+// ═══════════════════════════════════════════════════════════════
+// Render
+// ═══════════════════════════════════════════════════════════════
+
+const grid = document.getElementById("grid");
+const tabs = document.querySelectorAll(".tab");
+let currentCat = "all";
+
+function render() {
+  const filtered = currentCat === "all"
+    ? RECIPES
+    : RECIPES.filter(r => r.cat === currentCat);
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="no-results">😅 没有找到菜谱</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(r => `
+    <div class="card" data-id="${r.id}" onclick="toggleCard(this)">
+      <div class="card-inner">
+        <div class="card-header">
+          <div>
+            <div class="card-category">${CATEGORIES[r.cat]}</div>
+            <div class="card-name">${r.name}</div>
+          </div>
+          <div class="card-time">🕐 ${r.time}</div>
+        </div>
+      </div>
+      <div class="card-details">
+        <div class="detail-section">
+          <div class="detail-label">🥬 食材</div>
+          <ul class="ing-list">
+            ${r.ings.map(i => `<li>${i}</li>`).join("")}
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">👩‍🍳 做法</div>
+          <ol class="step-list">
+            ${r.steps.map(s => `<li>${s}</li>`).join("")}
+          </ol>
+        </div>
+        ${r.tip ? `<div class="tip-box"><strong>💡 小贴士</strong> ${r.tip}</div>` : ""}
+      </div>
+      <div class="expand-hint">点击展开完整做法</div>
+    </div>
+  `).join("");
+}
+
+function toggleCard(el) {
+  el.classList.toggle("open");
+}
+
+// ── Tabs ──
+tabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    tabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentCat = tab.dataset.cat;
+    render();
+    // Scroll to grid
+    grid.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+// ── Init ──
+render();
+console.log(`Loaded ${RECIPES.length} recipes`);
+</script>
+</body>
+</html>
